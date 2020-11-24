@@ -1,0 +1,30 @@
+{
+  "manifest_version": 2,
+  "name": "URL logger",
+  "version": "1.0",
+  "description": "Web request logger that outputs cURL commands for requests performed by a tab",
+  "icons": {
+    "16": "logger16.png",
+    "32": "logger32.png",
+    "48": "logger48.png",
+    "128": "logger128.png"
+  },
+  "browser_action": {
+    "default_icon": {
+      "16": "logger16.png",
+      "24": "logger24.png",
+      "32": "logger32.png"
+    },
+    "default_title": "Capture request URLs in this tab"
+  },
+  "background": {
+    "scripts": ["logger.js"],
+    "persistent": true
+  },
+  "incognito": "split",
+  "permissions": [
+    "webRequest",
+    "tabs",
+    "<all_urls>"
+  ]
+}

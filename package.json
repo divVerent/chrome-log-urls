@@ -1,0 +1,17 @@
+{
+  "name": "chrome-log-urls",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "build": "for s in 16 24 32 48 128; do convert logger.png -geometry ${s}x${s} logger${s}.png; done && tsc",
+    "format": "tsfmt -r logger.ts",
+    "pack": "7za a -tzip -mx=9 logger.zip manifest.json logger.js logger16.png logger24.png logger32.png logger48.png logger128.png"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "Apache",
+  "dependencies": {
+    "@types/chrome": ">=0.0.126",
+    "typescript-formatter": "^7.2.2"
+  }
+}
