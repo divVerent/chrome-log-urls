@@ -14,6 +14,8 @@ the requests.
 * Click the extension icon again. A new tab will open with all requests
   captured.
 
+![Screenshot](screenshot.png)
+
 # Why the permissions?
 
 Despite by design only tracking a single tab, the `activeTab` permission
