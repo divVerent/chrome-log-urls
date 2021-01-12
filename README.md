@@ -53,3 +53,7 @@ See the included [LICENSE](LICENSE) file.
 # Contributing
 
 See the included [CONTRIBUTING.md](CONTRIBURING.md) file.
+
+# Disclaimer
+
+This is not an officially supported Google product.
