@@ -83,27 +83,28 @@ function handleRequest(details: chrome.webRequest.WebRequestHeadersDetails) {
 		return;
 	}
 	requestsPerTab[details.tabId].push(details);
-	// TODO remove this info log once we have a better way to show the data in Firefox.
-	console.info(requestOverview(details) + ' ' + requestCommandHTML(details).textContent);
 	updateBrowserAction();
 }
 
 function showRequests(requests: chrome.webRequest.WebRequestHeadersDetails[]) {
-	const tab = window.open();
-	if (tab == null) {
-		console.error('Could not open a new window.');
-		return;
-	}
-	const dl = tab.document.createElement('dl');
+	const dl = document.createElement('dl');
 	for (const request of requests) {
-		const dt = tab.document.createElement('dt');
-		dt.appendChild(tab.document.createTextNode(requestOverview(request)));
+		const dt = document.createElement('dt');
+		dt.appendChild(document.createTextNode(requestOverview(request)));
 		dl.appendChild(dt);
-		const dd = tab.document.createElement('dd');
+		const dd = document.createElement('dd');
 		dd.appendChild(requestCommandHTML(request));
 		dl.appendChild(dd);
 	}
-	tab.document.body.appendChild(dl);
+	chrome.tabs.create({
+		'active': true,
+		'url': 'show.html'
+	}, (tab: chrome.tabs.Tab) => {
+		chrome.tabs.executeScript(tab.id!, {
+			// TODO replace this use of escape/unescape by something more targeted.
+			'code': `document.body.innerHTML = unescape('${escape(dl.outerHTML)}');`
+		});
+	});
 }
 
 chrome.browserAction.onClicked.addListener((tab) => {
@@ -122,6 +123,7 @@ chrome.browserAction.onClicked.addListener((tab) => {
 });
 
 const options = ['requestHeaders'];
+declare var browser: any;
 if (typeof browser === undefined) {
 	options.push('extraHeaders');
 }
