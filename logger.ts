@@ -83,6 +83,8 @@ function handleRequest(details: chrome.webRequest.WebRequestHeadersDetails) {
 		return;
 	}
 	requestsPerTab[details.tabId].push(details);
+	// TODO remove this info log once we have a better way to show the data in Firefox.
+	console.info(requestOverview(details) + ' ' + requestCommandHTML(details).textContent);
 	updateBrowserAction();
 }
 
@@ -119,9 +121,13 @@ chrome.browserAction.onClicked.addListener((tab) => {
 	updateBrowserAction();
 });
 
+const options = ['requestHeaders'];
+if (typeof browser === undefined) {
+	options.push('extraHeaders');
+}
 chrome.webRequest.onSendHeaders.addListener(handleRequest, {
 	urls: ['<all_urls>']
-}, ['requestHeaders', 'extraHeaders']);
+}, options);
 
 chrome.tabs.onRemoved.addListener((tabId, _) => delete requestsPerTab[tabId]);
 
