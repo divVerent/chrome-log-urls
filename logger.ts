@@ -101,8 +101,7 @@ function showRequests(requests: chrome.webRequest.WebRequestHeadersDetails[]) {
 		'url': 'show.html'
 	}, (tab: chrome.tabs.Tab) => {
 		chrome.tabs.executeScript(tab.id!, {
-			// TODO replace this use of escape/unescape by something more targeted.
-			'code': `document.body.innerHTML = unescape('${escape(dl.outerHTML)}');`
+			'code': `document.body.innerHTML = ${JSON.stringify(dl.outerHTML)};`
 		});
 	});
 }
