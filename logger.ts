@@ -96,14 +96,18 @@ function showRequests(requests: chrome.webRequest.WebRequestHeadersDetails[]) {
 		dd.appendChild(requestCommandHTML(request));
 		dl.appendChild(dd);
 	}
-	chrome.tabs.create({
-		'active': true,
-		'url': 'show.html'
-	}, (tab: chrome.tabs.Tab) => {
-		chrome.tabs.executeScript(tab.id!, {
-			'code': `document.body.innerHTML = ${JSON.stringify(dl.outerHTML)};`
+	if (typeof browser === 'undefined') {
+		open()!.document.body.innerHTML = dl.outerHTML;
+	} else {
+		chrome.tabs.create({
+			'active': true,
+			'url': '/show.html'
+		}, (tab: chrome.tabs.Tab) => {
+			chrome.tabs.executeScript(tab.id!, {
+				'code': `document.body.innerHTML = ${JSON.stringify(dl.outerHTML)};`
+			});
 		});
-	});
+	}
 }
 
 chrome.browserAction.onClicked.addListener((tab) => {
