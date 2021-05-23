@@ -21,7 +21,7 @@
     "scripts": ["logger.js"],
     "persistent": true
   },
-  "incognito": "split",
+  "incognito": "spanning",
   "permissions": [
     "webRequest",
     "tabs",
