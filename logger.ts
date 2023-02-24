@@ -43,9 +43,15 @@ function requestCommand(details: chrome.webRequest.WebRequestHeadersDetails): st
 	}
 	curlCommand += ' ';
 	curlCommand += shellEscape(details.url);
-	curlCommand += '  # ';
-	curlCommand += details.type
 	return curlCommand;
+}
+
+function escapeHTML(str: string): string {
+	return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function requestCommandHTML(details: chrome.webRequest.WebRequestHeadersDetails): string {
+	return '<dt>' + escapeHTML(details.type) + '</dt><dd>' + escapeHTML(requestCommand(details)) + '</dd>';
 }
 
 function updateBrowserAction() {
@@ -72,7 +78,7 @@ function updateBrowserAction() {
 }
 
 function handleRequest(details: chrome.webRequest.WebRequestHeadersDetails) {
-	const cmd = requestCommand(details);
+	const cmd = requestCommandHTML(details);
 	const tabId = details.tabId.toString();
 	chrome.storage.session.get([tabId]).then((result) => {
 		if (!(tabId in result)) {
@@ -85,9 +91,10 @@ function handleRequest(details: chrome.webRequest.WebRequestHeadersDetails) {
 }
 
 function showRequests(requests: string) {
+	const html = '<!DOCTYPE html><title>chrome-log-urls</title><dl>' + requests + '</dl>';
 	chrome.tabs.create({
 		'active': true,
-		'url': 'data:text/plain;base64,' + btoa(requests)
+		'url': 'data:text/html;base64,' + btoa(html)
 	});
 }
 
