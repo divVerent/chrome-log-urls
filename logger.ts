@@ -14,17 +14,11 @@
  * limitations under the License.
  */
 
-const requestsPerTab: Record<number, chrome.webRequest.WebRequestHeadersDetails[]> = {};
-
 function shellEscape(str: string): string {
 	return `'${str.replace(/'/g, "'\\''")}'`;
 }
 
-function requestOverview(details: chrome.webRequest.WebRequestHeadersDetails): string {
-	return details.type;
-}
-
-function requestCommandHTML(details: chrome.webRequest.WebRequestHeadersDetails): HTMLElement {
+function requestCommand(details: chrome.webRequest.WebRequestHeadersDetails): string {
 	let curlCommand = 'curl';
 	curlCommand += ` -X ${shellEscape(details.method)}`;
 	if (details.requestHeaders != null) {
@@ -48,14 +42,10 @@ function requestCommandHTML(details: chrome.webRequest.WebRequestHeadersDetails)
 		}
 	}
 	curlCommand += ' ';
-	const node = document.createElement('span');
-	node.appendChild(document.createTextNode(curlCommand));
-	const link = document.createElement('a');
-	link.href = details.url;
-	link.target = '_blank';
-	link.appendChild(document.createTextNode(shellEscape(details.url)));
-	node.appendChild(link);
-	return node;
+	curlCommand += shellEscape(details.url);
+	curlCommand += '  # ';
+	curlCommand += details.type
+	return curlCommand;
 }
 
 function updateBrowserAction() {
@@ -66,63 +56,55 @@ function updateBrowserAction() {
 		if (tabs.length != 1) {
 			return;
 		}
-		const tabId = tabs[0].id;
-		if (tabId == null) {
+		const tabIdVal = tabs[0].id;
+		if (tabIdVal == null) {
 			console.error('Active tab has no ID.');
 			return;
 		}
-		const requests = requestsPerTab[tabId];
-		chrome.browserAction.setBadgeText({
-			text: requests ? requests.length.toString() : ''
+		const tabId = tabIdVal.toString();
+		chrome.storage.session.get([tabId]).then((result) => {
+			const requests = result[tabId];
+			chrome.action.setBadgeText({
+				text: requests ? (requests.split('\n').length-1).toString() : ''
+			});
 		});
 	});
 }
 
 function handleRequest(details: chrome.webRequest.WebRequestHeadersDetails) {
-	if (!(details.tabId in requestsPerTab)) {
-		return;
-	}
-	requestsPerTab[details.tabId].push(details);
-	updateBrowserAction();
+	const cmd = requestCommand(details);
+	const tabId = details.tabId.toString();
+	chrome.storage.session.get([tabId]).then((result) => {
+		if (!(tabId in result)) {
+			return;
+		}
+		result[tabId] += cmd;
+		result[tabId] += "\n";
+		chrome.storage.session.set(result).then(() => updateBrowserAction());
+	});
 }
 
-function showRequests(requests: chrome.webRequest.WebRequestHeadersDetails[]) {
-	const dl = document.createElement('dl');
-	for (const request of requests) {
-		const dt = document.createElement('dt');
-		dt.appendChild(document.createTextNode(requestOverview(request)));
-		dl.appendChild(dt);
-		const dd = document.createElement('dd');
-		dd.appendChild(requestCommandHTML(request));
-		dl.appendChild(dd);
-	}
-	if (typeof browser === 'undefined') {
-		open()!.document.body.innerHTML = dl.outerHTML;
-	} else {
-		chrome.tabs.create({
-			'active': true,
-			'url': '/show.html'
-		}, (tab: chrome.tabs.Tab) => {
-			chrome.tabs.executeScript(tab.id!, {
-				'code': `document.body.innerHTML = ${JSON.stringify(dl.outerHTML)};`
-			});
-		});
-	}
+function showRequests(requests: string) {
+	chrome.tabs.create({
+		'active': true,
+		'url': 'data:text/plain;base64,' + btoa(requests)
+	});
 }
 
-chrome.browserAction.onClicked.addListener((tab) => {
+chrome.action.onClicked.addListener((tab) => {
 	if (tab.id == null) {
 		console.error('Tab has no ID.');
 		return;
 	}
-	if (tab.id in requestsPerTab) {
-		showRequests(requestsPerTab[tab.id]);
-		delete requestsPerTab[tab.id];
-		updateBrowserAction();
-		return;
-	}
-	requestsPerTab[tab.id] = [];
-	updateBrowserAction();
+	const tabId = tab.id.toString();
+	chrome.storage.session.get([tabId]).then((result) => {
+		if (!(tabId in result)) {
+			chrome.storage.session.set({[tabId]: ""}).then(() => updateBrowserAction());
+			return;
+		}
+		showRequests(result[tabId]);
+		chrome.storage.session.remove([tabId]).then(() => updateBrowserAction());
+	});
 });
 
 const options = ['requestHeaders'];
@@ -134,7 +116,9 @@ chrome.webRequest.onSendHeaders.addListener(handleRequest, {
 	urls: ['<all_urls>']
 }, options);
 
-chrome.tabs.onRemoved.addListener((tabId, _) => delete requestsPerTab[tabId]);
+chrome.tabs.onRemoved.addListener((tabId, _) => {
+	chrome.storage.session.remove(tabId.toString()).then(() => {});
+});
 
 chrome.tabs.onActivated.addListener((_) => updateBrowserAction());
 
